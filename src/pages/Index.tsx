@@ -10,20 +10,21 @@ const Index = () => {
       <header className="container mx-auto px-4 py-20 text-center">
         <MovableHeadline />
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Build lifelike AI voices in minutes. Perfect for virtual assistants,
-          storytelling, and educational content.
+          Transform your business operations with AI-powered virtual employees. 
+          From intelligent phone systems to automated workflow management, 
+          deploy enterprise-grade AI agents that work 24/7.
         </p>
         <Button size="lg" className="bg-accent hover:bg-accent/90">
-          Get Started Free
+          Deploy Your First Agent
         </Button>
       </header>
 
       {/* Survey Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Create Your Voice Agent</h2>
+          <h2 className="text-3xl font-bold mb-4">Configure Your Enterprise Agent</h2>
           <p className="text-gray-600">
-            Follow these simple steps to bring your AI assistant to life
+            Customize your AI agent's capabilities, knowledge base, and communication style
           </p>
         </div>
         <VoiceAgentSurvey />
@@ -34,16 +35,16 @@ const Index = () => {
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
-              title: "Natural Conversations",
-              description: "AI-powered voices that sound incredibly human-like",
+              title: "24/7 Phone Support",
+              description: "Handle customer calls, schedule appointments, and manage support tickets automatically",
             },
             {
-              title: "Custom Personalities",
-              description: "Design unique character traits and speaking styles",
+              title: "Workflow Automation",
+              description: "Streamline operations with AI agents that handle repetitive tasks and complex workflows",
             },
             {
-              title: "Easy Integration",
-              description: "Simple API to add voice capabilities to any project",
+              title: "Enterprise Integration",
+              description: "Seamlessly connect with your existing tools, CRM, and business systems",
             },
           ].map((feature) => (
             <div
@@ -59,12 +60,12 @@ const Index = () => {
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+        <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Operations?</h2>
         <p className="text-xl text-gray-600 mb-8">
-          Join thousands of creators building the next generation of voice AI
+          Join leading enterprises using AI agents to scale their business
         </p>
         <Button size="lg" className="bg-accent hover:bg-accent/90">
-          Start Creating Now
+          Deploy Now
         </Button>
       </section>
     </div>

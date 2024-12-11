@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-const words = ["Voice Agents", "AI Characters", "Digital Companions"];
+const words = [
+  "AI Phone Assistants",
+  "Virtual Employees",
+  "Ticket Concierge",
+  "Workflow Agents"
+];
 
 export const MovableHeadline = () => {
   const [currentWord, setCurrentWord] = useState(0);
@@ -14,7 +19,7 @@ export const MovableHeadline = () => {
 
   return (
     <h1 className="text-5xl md:text-7xl font-bold text-dark mb-6">
-      Create Amazing{" "}
+      Deploy Enterprise{" "}
       <span className="text-primary inline-block animate-text-morph">
         {words[currentWord]}
       </span>
