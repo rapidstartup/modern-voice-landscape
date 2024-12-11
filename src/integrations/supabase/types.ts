@@ -14,6 +14,7 @@ export type Database = {
           agent_name: string
           business_name: string
           created_at: string
+          elevenlabs_agent_id: string | null
           id: string
           name: string
           prompt: string | null
@@ -25,6 +26,7 @@ export type Database = {
           agent_name: string
           business_name: string
           created_at?: string
+          elevenlabs_agent_id?: string | null
           id?: string
           name: string
           prompt?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           agent_name?: string
           business_name?: string
           created_at?: string
+          elevenlabs_agent_id?: string | null
           id?: string
           name?: string
           prompt?: string | null

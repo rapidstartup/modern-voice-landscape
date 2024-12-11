@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
+import type { Database } from '@/integrations/supabase/types';
+
+type Agent = Database['public']['Tables']['agents']['Row'];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -28,7 +31,7 @@ const Dashboard = () => {
         .eq('user_id', session.user.id);
         
       if (error) throw error;
-      return data;
+      return data as Agent[];
     }
   });
 
@@ -67,17 +70,19 @@ const Dashboard = () => {
                 <p><span className="font-medium">Agent Name:</span> {agent.agent_name}</p>
                 <p><span className="font-medium">Voice Style:</span> {agent.voice_style}</p>
               </div>
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-2">Embed Code</h4>
-                <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Copy this code to embed your agent on your website:
-                  </p>
-                  <pre className="mt-2 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
-                    {`<elevenlabs-convai agent-id="${agent.elevenlabs_agent_id}"></elevenlabs-convai>\n<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>`}
-                  </pre>
+              {agent.elevenlabs_agent_id && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium mb-2">Embed Code</h4>
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Copy this code to embed your agent on your website:
+                    </p>
+                    <pre className="mt-2 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+                      {`<elevenlabs-convai agent-id="${agent.elevenlabs_agent_id}"></elevenlabs-convai>\n<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>`}
+                    </pre>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
