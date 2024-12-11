@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
-import { Speaker } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { VoiceStyles } from './voice-agent/VoiceStyles';
+import { AgentPrompt } from './voice-agent/AgentPrompt';
+import { supabase } from "@/integrations/supabase/client";
 
 const steps = [
   { id: 1, title: "Business Details" },
@@ -15,14 +15,6 @@ const steps = [
   { id: 4, title: "Knowledge Base" },
   { id: 5, title: "Review & Create" }
 ];
-
-// Voice samples mapping (to be updated with actual IDs)
-const voiceSamples = {
-  friendly: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  professional: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  energetic: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  calm: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" }
-};
 
 export const VoiceAgentSurvey = () => {
   const { toast } = useToast();
@@ -50,41 +42,52 @@ export const VoiceAgentSurvey = () => {
     }
   };
 
-  const useDefaultPrompt = () => {
-    const defaultPrompt = `You are an inbound Customer Service representative for ${formData.businessName} and your name is ${formData.agentName}. You will be relaxed, calm, professional and helpful to callers who are calling to raise a support request. You will take their details, confirming, and raise a ticket to the support desk on their behalf with the details of their issue and let them know we will follow up with them asap`;
-    setFormData(prev => ({ ...prev, prompt: defaultPrompt }));
-  };
-
-  const useDefaultWelcome = () => {
-    const defaultWelcome = `Hi, thank you for calling ${formData.businessName}, my name is ${formData.agentName}, how can I assist you today?`;
-    setFormData(prev => ({ ...prev, welcomeMessage: defaultWelcome }));
-  };
-
-  const playVoiceSample = async (style: string) => {
-    try {
-      const { voiceId, sampleId } = voiceSamples[style as keyof typeof voiceSamples];
-      // Here we would normally fetch and play the audio sample
-      // For now, we'll just show a toast
-      toast({
-        title: "Playing voice sample",
-        description: `Playing ${style} voice style sample`,
-      });
-      console.log(`Playing sample for voice ${voiceId} and sample ${sampleId}`);
-    } catch (error) {
-      console.error('Error playing voice sample:', error);
-      toast({
-        title: "Error",
-        description: "Could not play voice sample",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < steps.length) {
       setCurrentStep(prev => prev + 1);
     } else {
-      handleCreateAgent();
+      await handleCreateAgent();
+    }
+  };
+
+  const handleCreateAgent = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const { error } = await supabase.from('agents').insert({
+          user_id: session.user.id,
+          name: formData.businessName,
+          business_name: formData.businessName,
+          agent_name: formData.agentName,
+          voice_style: formData.voiceStyle,
+          prompt: formData.prompt,
+          welcome_message: formData.welcomeMessage,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Agent Created Successfully",
+          description: "Your agent has been saved and is ready for deployment.",
+        });
+        navigate('/dashboard');
+      } else {
+        // Store form data in localStorage before redirecting
+        localStorage.setItem('pendingAgent', JSON.stringify(formData));
+        toast({
+          title: "Create an Account",
+          description: "Please create an account to save and deploy your agent.",
+        });
+        navigate('/signup');
+      }
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create agent. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,15 +95,6 @@ export const VoiceAgentSurvey = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
     }
-  };
-
-  const handleCreateAgent = () => {
-    toast({
-      title: "Agent Created Successfully",
-      description: "Please create an account to save and deploy your agent.",
-    });
-    // Redirect to signup page
-    navigate('/signup');
   };
 
   return (
@@ -149,70 +143,21 @@ export const VoiceAgentSurvey = () => {
         )}
 
         {currentStep === 2 && (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="prompt">Agent Personality & Role</Label>
-              <Textarea
-                id="prompt"
-                value={formData.prompt}
-                onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                placeholder="Describe how your agent should behave and handle customer service inquiries..."
-                className="h-32"
-              />
-              <button
-                onClick={useDefaultPrompt}
-                className="text-sm text-primary hover:underline mt-2"
-              >
-                Use default: Professional MSP Support Agent prompt
-              </button>
-            </div>
-            <div>
-              <Label htmlFor="welcomeMessage">Welcome Message</Label>
-              <Input
-                id="welcomeMessage"
-                value={formData.welcomeMessage}
-                onChange={(e) => setFormData({ ...formData, welcomeMessage: e.target.value })}
-                placeholder="Enter the first message your agent will say"
-              />
-              <button
-                onClick={useDefaultWelcome}
-                className="text-sm text-primary hover:underline mt-2"
-              >
-                Use default: Professional greeting message
-              </button>
-            </div>
-          </div>
+          <AgentPrompt
+            businessName={formData.businessName}
+            agentName={formData.agentName}
+            prompt={formData.prompt}
+            welcomeMessage={formData.welcomeMessage}
+            onPromptChange={(value) => setFormData({ ...formData, prompt: value })}
+            onWelcomeMessageChange={(value) => setFormData({ ...formData, welcomeMessage: value })}
+          />
         )}
 
         {currentStep === 3 && (
-          <div className="space-y-4">
-            <Label>Voice Style</Label>
-            <RadioGroup
-              value={formData.voiceStyle}
-              onValueChange={(value) => setFormData({ ...formData, voiceStyle: value })}
-              className="grid grid-cols-2 gap-4"
-            >
-              {['friendly', 'professional', 'energetic', 'calm'].map((style) => (
-                <div key={style} className="flex items-center space-x-2">
-                  <RadioGroupItem value={style} id={style} />
-                  <Label htmlFor={style} className="capitalize flex items-center gap-2">
-                    {style}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        playVoiceSample(style);
-                      }}
-                    >
-                      <Speaker className="h-4 w-4" />
-                    </Button>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+          <VoiceStyles
+            value={formData.voiceStyle}
+            onChange={(value) => setFormData({ ...formData, voiceStyle: value })}
+          />
         )}
 
         {currentStep === 4 && (
