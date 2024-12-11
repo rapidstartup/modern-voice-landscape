@@ -54,33 +54,55 @@ export const VoiceAgentSurvey = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (session?.user) {
-        const { error } = await supabase.from('agents').insert({
-          user_id: session.user.id,
-          name: formData.businessName,
-          business_name: formData.businessName,
-          agent_name: formData.agentName,
-          voice_style: formData.voiceStyle,
-          prompt: formData.prompt,
-          welcome_message: formData.welcomeMessage,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Agent Created Successfully",
-          description: "Your agent has been saved and is ready for deployment.",
-        });
-        navigate('/dashboard');
-      } else {
-        // Store form data in localStorage before redirecting
+      if (!session) {
         localStorage.setItem('pendingAgent', JSON.stringify(formData));
         toast({
           title: "Create an Account",
           description: "Please create an account to save and deploy your agent.",
         });
         navigate('/signup');
+        return;
       }
+
+      // Create agent with ElevenLabs
+      const response = await fetch('/functions/v1/create_elevenlabs_agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          agentName: formData.agentName,
+          voiceStyle: formData.voiceStyle,
+          prompt: formData.prompt,
+          welcomeMessage: formData.welcomeMessage
+        })
+      });
+
+      const { agent_id, error } = await response.json();
+      
+      if (error) throw new Error(error);
+
+      // Save agent to database
+      const { error: dbError } = await supabase.from('agents').insert({
+        user_id: session.user.id,
+        name: formData.businessName,
+        business_name: formData.businessName,
+        agent_name: formData.agentName,
+        voice_style: formData.voiceStyle,
+        prompt: formData.prompt,
+        welcome_message: formData.welcomeMessage,
+        elevenlabs_agent_id: agent_id
+      });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Agent Created Successfully",
+        description: "Your agent has been saved and is ready for deployment.",
+      });
+      navigate('/dashboard');
     } catch (error) {
       console.error('Error creating agent:', error);
       toast({
