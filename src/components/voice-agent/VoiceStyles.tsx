@@ -6,6 +6,26 @@ import { useToast } from '@/components/ui/use-toast';
 import { Speaker } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
+// Voice configuration mapping
+const voiceConfig = {
+  friendly: {
+    voiceId: 'cjVigY5qzO86Huf0OWal', // Eric
+    message: "Hi there, I will answer your calls in a friendly and helpful manner"
+  },
+  energetic: {
+    voiceId: 'cgSgspJ2msm6clMCkdW9', // Jessica
+    message: "Hi there, I will answer your calls with an enthusiastic and energetic style"
+  },
+  professional: {
+    voiceId: 'iP95p4xoKVk53GoZ742B', // Chris
+    message: "Hi there, I will answer your calls efficiently and in an understanding and professional tone"
+  },
+  calm: {
+    voiceId: 'CwhRBWXzGAHq8TQ4Fs17', // Roger
+    message: "Hi there, I will answer your calls calmly and in an understanding and easy to get along with demeanor"
+  }
+};
+
 interface VoiceStylesProps {
   value: string;
   onChange: (value: string) => void;
@@ -25,17 +45,15 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
         throw new Error('Could not fetch API key');
       }
 
-      const voiceId = 'cjVigY5qzO86Huf0OWal'; // ERIC voice
-      const text = "Hi there, I will answer your calls efficiently and in an understanding and professional tone";
-
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      const config = voiceConfig[style as keyof typeof voiceConfig];
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
         method: 'POST',
         headers: {
           'xi-api-key': data,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text,
+          text: config.message,
           model_id: "eleven_turbo_v2",
           voice_settings: {
             stability: 0.5,
