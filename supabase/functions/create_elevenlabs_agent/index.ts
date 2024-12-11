@@ -7,11 +7,13 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log('Received request to create ElevenLabs agent');
     const { businessName, agentName, voiceStyle, prompt, welcomeMessage } = await req.json()
     
     // Get ElevenLabs API key from secrets
@@ -20,14 +22,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { data: secretData } = await supabaseClient
-      .from('secrets')
-      .select('value')
-      .eq('name', 'ELEVENLABS_API_KEY')
-      .single()
+    const { data: secretData, error: secretError } = await supabaseClient
+      .rpc('get_secret', { name: 'ELEVENLABS_API_KEY' })
 
-    if (!secretData?.value) {
-      throw new Error('ElevenLabs API key not found')
+    if (secretError || !secretData) {
+      console.error('Error fetching API key:', secretError);
+      throw new Error('ElevenLabs API key not found');
     }
 
     // Voice IDs mapping
@@ -83,17 +83,26 @@ serve(async (req) => {
       name: agentName
     }
 
+    console.log('Creating agent with config:', JSON.stringify(agentConfig));
+
     // Create agent using ElevenLabs API
     const response = await fetch('https://api.elevenlabs.io/v1/convai/agents/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'xi-api-key': secretData.value
+        'xi-api-key': secretData
       },
       body: JSON.stringify(agentConfig)
     })
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('ElevenLabs API error:', errorData);
+      throw new Error(`ElevenLabs API error: ${JSON.stringify(errorData)}`);
+    }
+
     const data = await response.json()
+    console.log('Agent created successfully:', data);
 
     return new Response(
       JSON.stringify(data),
@@ -103,6 +112,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in create_elevenlabs_agent:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

@@ -36,20 +36,31 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
 
   const playVoiceSample = async (style: string) => {
     try {
-      const { data, error: secretError } = await supabase.rpc('get_secret', {
+      console.log('Playing voice sample for style:', style);
+      
+      const { data: secretData, error: secretError } = await supabase.rpc('get_secret', {
         name: 'ELEVENLABS_API_KEY'
       });
 
-      if (secretError || !data) {
+      if (secretError) {
         console.error('Error fetching API key:', secretError);
         throw new Error('Could not fetch API key');
       }
 
+      if (!secretData) {
+        console.error('No API key found');
+        throw new Error('No API key found');
+      }
+
+      console.log('Successfully retrieved API key');
+
       const config = voiceConfig[style as keyof typeof voiceConfig];
+      console.log('Using voice config:', { voiceId: config.voiceId, message: config.message });
+
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}`, {
         method: 'POST',
         headers: {
-          'xi-api-key': data,
+          'xi-api-key': secretData,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -62,26 +73,38 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
         }),
       });
 
+      console.log('ElevenLabs API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('ElevenLabs API error:', errorData);
-        throw new Error('Failed to generate voice sample');
+        throw new Error(`Failed to generate voice sample: ${errorData.detail?.message || 'Unknown error'}`);
       }
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
+      
+      audio.onplay = () => {
+        console.log('Audio started playing');
+        toast({
+          title: "Playing voice sample",
+          description: `Playing ${style} voice style sample`,
+        });
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        throw new Error('Failed to play audio');
+      };
+
       await audio.play();
 
-      toast({
-        title: "Playing voice sample",
-        description: `Playing ${style} voice style sample`,
-      });
     } catch (error) {
-      console.error('Error playing voice sample:', error);
+      console.error('Error in playVoiceSample:', error);
       toast({
         title: "Error",
-        description: "Could not play voice sample. Please ensure the API key is set correctly.",
+        description: error instanceof Error ? error.message : "Could not play voice sample",
         variant: "destructive",
       });
     }
@@ -95,7 +118,7 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
         onValueChange={onChange}
         className="grid grid-cols-2 gap-4"
       >
-        {['friendly', 'professional', 'energetic', 'calm'].map((style) => (
+        {Object.entries(voiceConfig).map(([style]) => (
           <div key={style} className="flex items-center space-x-2">
             <RadioGroupItem value={style} id={style} />
             <Label htmlFor={style} className="capitalize flex items-center gap-2">

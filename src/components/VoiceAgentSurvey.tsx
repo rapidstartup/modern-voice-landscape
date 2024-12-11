@@ -52,9 +52,11 @@ export const VoiceAgentSurvey = () => {
 
   const handleCreateAgent = async () => {
     try {
+      console.log('Starting agent creation process');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log('No session found, storing agent data and redirecting to signup');
         localStorage.setItem('pendingAgent', JSON.stringify(formData));
         toast({
           title: "Create an Account",
@@ -64,7 +66,7 @@ export const VoiceAgentSurvey = () => {
         return;
       }
 
-      // Create agent with ElevenLabs
+      console.log('Creating agent with ElevenLabs');
       const response = await fetch('/functions/v1/create_elevenlabs_agent', {
         method: 'POST',
         headers: {
@@ -80,11 +82,18 @@ export const VoiceAgentSurvey = () => {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response from create_elevenlabs_agent:', errorData);
+        throw new Error(errorData.error || 'Failed to create agent');
+      }
+
       const { agent_id, error } = await response.json();
+      console.log('ElevenLabs agent created with ID:', agent_id);
       
       if (error) throw new Error(error);
 
-      // Save agent to database
+      console.log('Saving agent to database');
       const { error: dbError } = await supabase.from('agents').insert({
         user_id: session.user.id,
         name: formData.businessName,
@@ -96,8 +105,12 @@ export const VoiceAgentSurvey = () => {
         elevenlabs_agent_id: agent_id
       });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
 
+      console.log('Agent created successfully');
       toast({
         title: "Agent Created Successfully",
         description: "Your agent has been saved and is ready for deployment.",
@@ -107,7 +120,7 @@ export const VoiceAgentSurvey = () => {
       console.error('Error creating agent:', error);
       toast({
         title: "Error",
-        description: "Failed to create agent. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create agent. Please try again.",
         variant: "destructive",
       });
     }
