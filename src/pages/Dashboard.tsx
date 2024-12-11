@@ -32,6 +32,18 @@ const Dashboard = () => {
     }
   });
 
+  useEffect(() => {
+    // Load the ElevenLabs widget script
+    const script = document.createElement('script');
+    script.src = 'https://elevenlabs.io/convai-widget/index.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -55,7 +67,7 @@ const Dashboard = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {agents?.map((agent) => (
             <div
               key={agent.id}
@@ -63,9 +75,25 @@ const Dashboard = () => {
             >
               <h3 className="text-xl font-semibold mb-2">{agent.name}</h3>
               <p className="text-muted-foreground mb-4">Business: {agent.business_name}</p>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 <p><span className="font-medium">Agent Name:</span> {agent.agent_name}</p>
                 <p><span className="font-medium">Voice Style:</span> {agent.voice_style}</p>
+              </div>
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium mb-2">Embed Code</h4>
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: `<elevenlabs-convai agent-id="${agent.id}"></elevenlabs-convai>`
+                  }} 
+                />
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Copy this code to embed your agent on your website:
+                  </p>
+                  <pre className="mt-2 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+                    {`<elevenlabs-convai agent-id="${agent.id}"></elevenlabs-convai>\n<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>`}
+                  </pre>
+                </div>
               </div>
             </div>
           ))}

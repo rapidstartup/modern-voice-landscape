@@ -6,14 +6,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Speaker } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
-// Voice samples mapping
-const voiceSamples = {
-  friendly: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  professional: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  energetic: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" },
-  calm: { voiceId: "ja9xsmfGhxYcymxGcOGB", sampleId: "pMsXgVXv3BLzUgSXRplE" }
-};
-
 interface VoiceStylesProps {
   value: string;
   onChange: (value: string) => void;
@@ -24,28 +16,38 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
 
   const playVoiceSample = async (style: string) => {
     try {
-      const { voiceId, sampleId } = voiceSamples[style as keyof typeof voiceSamples];
-      
-      // Get the ElevenLabs API key from Supabase
-      const { data: { secret }, error: secretError } = await supabase.rpc('get_secret', {
+      const { data, error: secretError } = await supabase.rpc('get_secret', {
         name: 'ELEVENLABS_API_KEY'
       });
 
-      if (secretError || !secret) {
+      if (secretError || !data) {
         console.error('Error fetching API key:', secretError);
         throw new Error('Could not fetch API key');
       }
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}/samples/${sampleId}/audio`, {
+      const voiceId = 'cjVigY5qzO86Huf0OWal'; // ERIC voice
+      const text = "Hi there, I will answer your calls efficiently and in an understanding and professional tone";
+
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
         headers: {
-          'xi-api-key': secret,
+          'xi-api-key': data,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_turbo_v2",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.8,
+          }
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         console.error('ElevenLabs API error:', errorData);
-        throw new Error('Failed to fetch voice sample');
+        throw new Error('Failed to generate voice sample');
       }
 
       const audioBlob = await response.blob();
