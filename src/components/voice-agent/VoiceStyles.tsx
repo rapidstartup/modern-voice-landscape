@@ -26,14 +26,27 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
     try {
       const { voiceId, sampleId } = voiceSamples[style as keyof typeof voiceSamples];
       
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get the ElevenLabs API key from Supabase
+      const { data: { secret }, error: secretError } = await supabase.rpc('get_secret', {
+        name: 'ELEVENLABS_API_KEY'
+      });
+
+      if (secretError || !secret) {
+        console.error('Error fetching API key:', secretError);
+        throw new Error('Could not fetch API key');
+      }
+
       const response = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}/samples/${sampleId}/audio`, {
         headers: {
-          'xi-api-key': session?.user?.id ? process.env.ELEVENLABS_API_KEY || '' : '',
+          'xi-api-key': secret,
         },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch voice sample');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('ElevenLabs API error:', errorData);
+        throw new Error('Failed to fetch voice sample');
+      }
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -48,7 +61,7 @@ export const VoiceStyles = ({ value, onChange }: VoiceStylesProps) => {
       console.error('Error playing voice sample:', error);
       toast({
         title: "Error",
-        description: "Could not play voice sample",
+        description: "Could not play voice sample. Please ensure the API key is set correctly.",
         variant: "destructive",
       });
     }
